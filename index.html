@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instagram Non‑Followers Checker</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --bg: #f5f5f4;
+      --text: #1f2937;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    #uploader {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-width: 500px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    input[type="file"] {
+      padding: 0.75rem;
+      border: 2px dashed var(--primary);
+      border-radius: 0.5rem;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    button {
+      padding: 0.75rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 1.5rem;
+    }
+
+    li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      word-break: break-all;
+    }
+
+    @media (min-width: 640px) {
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Who Doesn’t Follow You Back?</h1>
+  <div id="uploader">
+    <input type="file" id="zipInput" accept=".zip" />
+    <button id="analyzeBtn">Analyze</button>
+  </div>
+  <ul id="resultList"></ul>
+
+  <!-- JSZip from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    const input = document.getElementById('zipInput');
+    const btn = document.getElementById('analyzeBtn');
+    const list = document.getElementById('resultList');
+
+    async function textToHandles(jsonText) {
+      try {
+        const data = JSON.parse(jsonText);
+        if (!Array.isArray(data)) return [];
+        const handles = [];
+        data.forEach(item => {
+          if (item.string_list_data && item.string_list_data[0]?.value) {
+            handles.push(item.string_list_data[0].value.toLowerCase());
+          }
+        });
+        return handles;
+      } catch (e) {
+        console.error('JSON parse error:', e);
+        return [];
+      }
+    }
+
+    btn.addEventListener('click', async () => {
+      if (!input.files.length) {
+        alert('Please select your Instagram data ZIP file first.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Processing…';
+      list.innerHTML = '';
+
+      const file = input.files[0];
+      const zip = await JSZip.loadAsync(file);
+
+      const followers = new Set();
+      const following = new Set();
+
+      const tasks = [];
+      zip.forEach((relativePath, zipEntry) => {
+        const lower = relativePath.toLowerCase();
+        if (lower.includes('followers') && lower.endsWith('.json')) {
+          tasks.push(
+            zipEntry.async('string').then(text => textToHandles(text).then(arr => arr.forEach(h => followers.add(h))))
+          );
+        } else if (lower.includes('following') && lower.endsWith('.json')) {
+          tasks.push(
+            zipEntry.async('string').then(text => textToHandles(text).then(arr => arr.forEach(h => following.add(h))))
+          );
+        }
+      });
+
+      await Promise.all(tasks);
+
+      const notFollowingBack = [...following].filter(h => !followers.has(h));
+      notFollowingBack.sort();
+
+      if (notFollowingBack.length === 0) {
+        list.innerHTML = '<li style="text-align:center;">🎉 Everyone follows you back!</li>';
+      } else {
+        list.innerHTML = notFollowingBack.map(h => `<li>@${h}</li>`).join('');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Analyze';
+    });
+  </script>
+</body>
+</html>
