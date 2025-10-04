@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Instagram Follower Insights</title>
+    <link rel="icon" type="image/jpeg" href="./instagram.jpg" />
+    <link rel="shortcut icon" type="image/jpeg" href="./instagram.jpg" />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -171,20 +173,41 @@
             analyzeBtn.disabled = false;
             return;
           }
+          const extractUsername = (obj) => {
+            if (!obj || typeof obj !== "object") return null;
+            const candidateValue = obj?.string_list_data?.[0]?.value;
+            const candidateTitle = obj?.title;
+            const href = obj?.string_list_data?.[0]?.href;
+            const usernameLike = /^(?:[a-z0-9](?:[a-z0-9._]{0,28}[a-z0-9])?)$/i;
+            if (candidateValue && usernameLike.test(candidateValue))
+              return candidateValue.toLowerCase();
+            if (candidateTitle && usernameLike.test(candidateTitle))
+              return candidateTitle.toLowerCase();
+            if (href) {
+              const m = href.match(/instagram\.com\/([^\/]+)\/?/i);
+              if (m && usernameLike.test(m[1])) return m[1].toLowerCase();
+            }
+            return null;
+          };
           const followersSet = new Set();
           for (const entry of followerEntries) {
             const text = await entry.async("string");
             JSON.parse(text).forEach((i) => {
-              const u = i.string_list_data?.[0]?.value;
-              if (u) followersSet.add(u.toLowerCase());
+              const u = extractUsername(i);
+              if (u) followersSet.add(u);
             });
           }
           const followingSet = new Set();
           for (const entry of followingEntries) {
             const text = await entry.async("string");
-            (JSON.parse(text).relationships_following || []).forEach((i) => {
-              const u = i.string_list_data?.[0]?.value;
-              if (u) followingSet.add(u.toLowerCase());
+            const parsed = JSON.parse(text);
+            const arr =
+              parsed.relationships_following ||
+              parsed.relationships_following ||
+              [];
+            arr.forEach((i) => {
+              const u = extractUsername(i);
+              if (u) followingSet.add(u);
             });
           }
           const notFollowingBack = [...followingSet].filter(
