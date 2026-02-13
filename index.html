@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Instagram Follower Insights</title>
-    <link rel="icon" type="image/jpeg" href="./instagram.jpg" />
-    <link rel="shortcut icon" type="image/jpeg" href="./instagram.jpg" />
+    <link rel="icon" type="image/png" href="./instagram.png" />
+    <link rel="shortcut icon" type="image/png" href="./instagram.png" />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -30,8 +30,14 @@
         justify-content: center;
         padding: 2rem;
         color: #fff;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-          Arial, sans-serif;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
       }
       .card {
         border: none;
@@ -139,11 +145,11 @@
       const listYouDoNotFollow = document.getElementById("listYouDoNotFollow");
       const countNotFollowBack = document.getElementById("countNotFollowBack");
       const countYouDoNotFollow = document.getElementById(
-        "countYouDoNotFollow"
+        "countYouDoNotFollow",
       );
       zipInput.addEventListener(
         "change",
-        () => (analyzeBtn.disabled = !zipInput.files.length)
+        () => (analyzeBtn.disabled = !zipInput.files.length),
       );
       analyzeBtn.addEventListener("click", async () => {
         const file = zipInput.files[0];
@@ -156,73 +162,83 @@
           const followingEntries = [];
           zip.forEach((path, entry) => {
             if (
-              /connections\/followers_and_following\/followers.*\.json$/i.test(
-                path
+              /connections\/followers_and_following\/followers_\d+\.html$/i.test(
+                path,
               )
             )
               followerEntries.push(entry);
             else if (
-              /connections\/followers_and_following\/following\.json$/i.test(
-                path
+              /connections\/followers_and_following\/following\.html$/i.test(
+                path,
               )
             )
               followingEntries.push(entry);
           });
           if (!followerEntries.length || !followingEntries.length) {
-            alert("Required files not found.");
+            alert(
+              "Required files not found. Please upload the correct 'connections/followers_and_following' HTML files.",
+            );
             analyzeBtn.disabled = false;
             return;
           }
-          const extractUsername = (obj) => {
-            if (!obj || typeof obj !== "object") return null;
-            const candidateValue = obj?.string_list_data?.[0]?.value;
-            const candidateTitle = obj?.title;
-            const href = obj?.string_list_data?.[0]?.href;
-            const usernameLike = /^(?:[a-z0-9](?:[a-z0-9._]{0,28}[a-z0-9])?)$/i;
-            if (candidateValue && usernameLike.test(candidateValue))
-              return candidateValue.toLowerCase();
-            if (candidateTitle && usernameLike.test(candidateTitle))
-              return candidateTitle.toLowerCase();
-            if (href) {
-              const m = href.match(/instagram\.com\/([^\/]+)\/?/i);
-              if (m && usernameLike.test(m[1])) return m[1].toLowerCase();
+
+          const extractUsernameFromLink = (a) => {
+            // Try to get username from href first
+            try {
+              const url = new URL(a.href);
+              // Handle /_u/username and /username
+              const parts = url.pathname.split("/").filter(Boolean);
+              if (parts.length > 0) {
+                if (parts[0] === "_u" && parts[1]) return parts[1];
+                if (parts[0] !== "_u") return parts[0];
+              }
+            } catch (e) {
+              // ignore invalid urls
             }
+            // Fallback to text content if it looks like a username
+            const text = a.textContent.trim();
+            if (/^[a-zA-Z0-9._]+$/.test(text)) return text;
             return null;
           };
+
+          const parseUsersFromHTML = (htmlContent) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, "text/html");
+            const links = doc.querySelectorAll("a");
+            const users = new Set();
+            links.forEach((a) => {
+              const u = extractUsernameFromLink(a);
+              if (u) users.add(u.toLowerCase());
+            });
+            return users;
+          };
+
           const followersSet = new Set();
           for (const entry of followerEntries) {
-            const text = await entry.async("string");
-            JSON.parse(text).forEach((i) => {
-              const u = extractUsername(i);
-              if (u) followersSet.add(u);
-            });
+            const html = await entry.async("string");
+            const users = parseUsersFromHTML(html);
+            users.forEach((u) => followersSet.add(u));
           }
+
           const followingSet = new Set();
           for (const entry of followingEntries) {
-            const text = await entry.async("string");
-            const parsed = JSON.parse(text);
-            const arr =
-              parsed.relationships_following ||
-              parsed.relationships_following ||
-              [];
-            arr.forEach((i) => {
-              const u = extractUsername(i);
-              if (u) followingSet.add(u);
-            });
+            const html = await entry.async("string");
+            const users = parseUsersFromHTML(html);
+            users.forEach((u) => followingSet.add(u));
           }
           const notFollowingBack = [...followingSet].filter(
-            (u) => !followersSet.has(u)
+            (u) => !followersSet.has(u),
           );
           const youDoNotFollow = [...followersSet].filter(
-            (u) => !followingSet.has(u)
+            (u) => !followingSet.has(u),
           );
           listNotFollowBack.innerHTML = notFollowingBack.length
             ? notFollowingBack
                 .map(
                   (u) =>
                     `<li class="list-group-item"><a href="https://www.instagram.com/${encodeURIComponent(
-                      u
-                    )}/" target="_blank" rel="noopener noreferrer">@${u}</a></li>`
+                      u,
+                    )}/" target="_blank" rel="noopener noreferrer">@${u}</a></li>`,
                 )
                 .join("")
             : "<li class='list-group-item'>🎉 None!</li>";
@@ -231,8 +247,8 @@
                 .map(
                   (u) =>
                     `<li class="list-group-item"><a href="https://www.instagram.com/${encodeURIComponent(
-                      u
-                    )}/" target="_blank" rel="noopener noreferrer">@${u}</a></li>`
+                      u,
+                    )}/" target="_blank" rel="noopener noreferrer">@${u}</a></li>`,
                 )
                 .join("")
             : "<li class='list-group-item'>🎉 None!</li>";
