@@ -2,208 +2,774 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Instagram Follower Insights</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Instagram Insights Dashboard</title>
     <link rel="icon" type="image/png" href="./instagram.png" />
-    <link rel="shortcut icon" type="image/png" href="./instagram.png" />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
       crossorigin="anonymous"
     />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
       :root {
-        --gradient-start: #38b6ff;
-        --gradient-end: #89f7fe;
-        --accent: #ffffff;
-      }
-      body {
-        min-height: 100vh;
-        background: linear-gradient(
-          135deg,
-          var(--gradient-start) 0%,
-          var(--gradient-end) 100%
+        --primary-gradient: linear-gradient(
+          45deg,
+          #f09433 0%,
+          #e6683c 25%,
+          #dc2743 50%,
+          #cc2366 75%,
+          #bc1888 100%
         );
+        --sidebar-width: 280px;
+        --bg-light: #f8f9fa;
+        --card-bg: #ffffff;
+      }
+
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background-color: var(--bg-light);
+        overflow-x: hidden;
+      }
+
+      #wrapper {
+        display: flex;
+        width: 100%;
+        min-height: 100vh;
+      }
+
+      #sidebar-wrapper {
+        min-height: 100vh;
+        width: var(--sidebar-width);
+        margin-left: -var(--sidebar-width);
+        transition: margin 0.25s ease-out;
+        position: fixed;
+        z-index: 1000;
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+      }
+
+      #wrapper.toggled #sidebar-wrapper {
+        margin-left: 0;
+      }
+
+      #page-content-wrapper {
+        width: 100%;
+        transition: margin 0.25s ease-out;
+        padding-left: 0;
+      }
+
+      #wrapper.toggled #page-content-wrapper {
+        padding-left: var(--sidebar-width);
+      }
+
+      @media (min-width: 768px) {
+        #sidebar-wrapper {
+          margin-left: 0;
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          overflow-y: auto;
+        }
+        #page-content-wrapper {
+          padding-left: 0;
+        }
+        #wrapper.toggled #sidebar-wrapper {
+          margin-left: -var(--sidebar-width);
+        }
+      }
+
+      .sidebar-heading {
+        padding: 1.5rem 1.25rem;
+        font-size: 1.5rem;
+        font-weight: bold;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .list-group-item {
+        border: none;
+        padding: 0.75rem 1.25rem;
+        font-weight: 500;
+        color: #495057;
+        border-radius: 0.5rem;
+        margin: 0.2rem 0.5rem;
+        transition: all 0.2s;
+      }
+
+      .list-group-item:hover {
+        background-color: #f8f9fa;
+        color: #dc2743;
+      }
+
+      .list-group-item.active {
+        background: var(--primary-gradient);
+        color: #fff;
+        border: none;
+      }
+
+      .stat-card {
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+        background: var(--card-bg);
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 2rem;
-        color: #fff;
-        font-family:
-          system-ui,
-          -apple-system,
-          "Segoe UI",
-          Roboto,
-          Helvetica,
-          Arial,
-          sans-serif;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
       }
-      .card {
+
+      .user-list-card {
         border: none;
-        border-radius: 1.5rem;
-        backdrop-filter: blur(8px);
-        background: rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
       }
-      .card-header {
-        background: transparent;
-        border: none;
+
+      .user-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid #f1f1f1;
+        transition: background 0.2s;
       }
-      ul {
-        list-style: none;
-        padding-left: 0;
-        margin: 0;
+
+      .user-item:hover {
+        background-color: #fcfcfc;
       }
-      .list-group-item {
-        background: rgba(255, 255, 255, 0.05);
-        border: none;
-        color: #fff;
-        padding: 0.6rem 1rem;
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        color: #adb5bd;
+        font-size: 1.2rem;
       }
-      .list-group-item:not(:last-child) {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+      .upload-area {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-gradient);
       }
-      .list-group-item a {
-        color: inherit;
-        text-decoration: none;
+
+      .upload-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 2rem;
+        padding: 3rem;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
       }
-      .list-group-item a:hover {
-        text-decoration: underline;
+
+      .hidden {
+        display: none !important;
       }
-      .badge {
-        background: rgba(255, 255, 255, 0.25);
+
+      /* Scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 8px;
       }
-      .btn-primary {
-        background: var(--accent);
-        color: var(--gradient-start);
-        border: none;
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
       }
-      .btn-primary:disabled {
-        opacity: 0.6;
+      ::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
       }
-      .form-label {
-        color: #eaeaea;
-      }
-      @media (max-width: 575.98px) {
-        .container {
-          padding: 0;
-        }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #bababa;
       }
     </style>
   </head>
   <body>
-    <div class="container" style="max-width: 650px">
-      <h1 class="text-center fw-bold mb-4">Instagram Follower Insights</h1>
-      <div class="card shadow-lg p-4 mb-4">
-        <label for="zipInput" class="form-label mb-2"
-          >1. Upload your <code>.zip</code> export</label
-        >
-        <input
-          type="file"
-          id="zipInput"
-          accept=".zip"
-          class="form-control mb-3"
+    <!-- Upload View -->
+    <div id="uploadView" class="upload-area">
+      <div class="upload-card">
+        <img
+          src="instagram.png"
+          alt="Logo"
+          width="80"
+          class="mb-4 rounded-3 shadow-sm"
         />
-        <button id="analyzeBtn" class="btn btn-primary w-100" disabled>
-          Analyze
+        <h2 class="fw-bold mb-3">Instagram Insights</h2>
+        <p class="text-muted mb-4">
+          Upload your Instagram data zip file to inspect your followers,
+          requests, and more.
+        </p>
+
+        <div class="mb-4 text-start">
+          <label
+            for="zipInput"
+            class="form-label fw-semibold text-secondary small text-uppercase"
+            >Select Zip File</label
+          >
+          <input
+            type="file"
+            id="zipInput"
+            accept=".zip"
+            class="form-control form-control-lg"
+          />
+        </div>
+
+        <button
+          id="analyzeBtn"
+          class="btn btn-dark btn-lg w-100 py-3 rounded-pill fw-bold"
+          disabled
+        >
+          <span
+            class="spinner-border spinner-border-sm d-none me-2"
+            role="status"
+            aria-hidden="true"
+          ></span>
+          Analyze Data
         </button>
+        <p id="errorMsg" class="text-danger mt-3 small hidden"></p>
       </div>
-      <div id="result" class="d-none">
-        <div class="row g-4">
-          <div class="col-12 col-md-6">
-            <div class="card shadow-lg p-3 h-100">
-              <h5 class="fw-semibold">
-                Not Following You Back
-                <span id="countNotFollowBack" class="badge ms-1"></span>
-              </h5>
-              <ul
-                id="listNotFollowBack"
-                class="list-group list-group-flush mt-2"
-              ></ul>
+    </div>
+
+    <!-- Dashboard View -->
+    <div class="d-flex hidden" id="wrapper">
+      <!-- Sidebar -->
+      <div id="sidebar-wrapper">
+        <div class="sidebar-heading">
+          <img src="instagram.png" alt="Logo" width="30" height="30" /> Insights
+        </div>
+        <div class="list-group list-group-flush my-3">
+          <a
+            href="#"
+            class="list-group-item list-group-item-action active"
+            onclick="showSection('overview')"
+          >
+            <i class="bi bi-grid-fill me-2"></i> Overview
+          </a>
+          <a
+            href="#"
+            class="list-group-item list-group-item-action"
+            onclick="showSection('not-following-back')"
+          >
+            <i class="bi bi-person-x-fill me-2"></i> Not Following Back
+            <span
+              class="badge bg-danger rounded-pill float-end"
+              id="badge-not-back"
+              >0</span
+            >
+          </a>
+          <a
+            href="#"
+            class="list-group-item list-group-item-action"
+            onclick="showSection('dont-follow-back')"
+          >
+            <i class="bi bi-person-dash-fill me-2"></i> You Don't Follow Back
+            <span
+              class="badge bg-secondary rounded-pill float-end"
+              id="badge-dont-back"
+              >0</span
+            >
+          </a>
+          <div class="mt-3 mb-1 px-3 text-muted small text-uppercase fw-bold">
+            Requests & Activity
+          </div>
+          <a
+            href="#"
+            class="list-group-item list-group-item-action"
+            onclick="showSection('pending-requests')"
+          >
+            <i class="bi bi-send-fill me-2"></i> Pending Requests
+            <span
+              class="badge bg-warning text-dark rounded-pill float-end"
+              id="badge-pending"
+              >0</span
+            >
+          </a>
+          <a
+            href="#"
+            class="list-group-item list-group-item-action"
+            onclick="showSection('recent-requests')"
+          >
+            <i class="bi bi-clock-history me-2"></i> Recent Requests
+            <span
+              class="badge bg-info text-dark rounded-pill float-end"
+              id="badge-recent"
+              >0</span
+            >
+          </a>
+          <a
+            href="#"
+            class="list-group-item list-group-item-action"
+            onclick="showSection('recently-unfollowed')"
+          >
+            <i class="bi bi-heartbreak-fill me-2"></i> Recently Unfollowed
+            <span
+              class="badge bg-dark rounded-pill float-end"
+              id="badge-unfollowed"
+              >0</span
+            >
+          </a>
+          <a
+            href="#"
+            class="list-group-item list-group-item-action"
+            onclick="showSection('restricted')"
+          >
+            <i class="bi bi-shield-lock-fill me-2"></i> Restricted Profiles
+            <span
+              class="badge bg-danger rounded-pill float-end"
+              id="badge-restricted"
+              >0</span
+            >
+          </a>
+
+          <div class="mt-auto px-3 pb-3 pt-5">
+            <button
+              onclick="location.reload()"
+              class="btn btn-outline-danger w-100 btn-sm"
+            >
+              <i class="bi bi-box-arrow-left me-1"></i> Upload New File
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- /#sidebar-wrapper -->
+
+      <!-- Page Content -->
+      <div id="page-content-wrapper">
+        <nav
+          class="navbar navbar-expand-lg navbar-light bg-light border-bottom px-4 py-3 d-md-none"
+        >
+          <button class="btn btn-primary" id="menu-toggle">
+            <i class="bi bi-list"></i> Menu
+          </button>
+        </nav>
+
+        <div class="container-fluid p-4">
+          <!-- Section: Overview -->
+          <div id="overview-section" class="content-section">
+            <h2 class="fw-bold mb-4">Dashboard Overview</h2>
+            <div class="row g-4 mb-4">
+              <div class="col-md-6 col-lg-3">
+                <div class="stat-card p-4 h-100">
+                  <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-people-fill"></i>
+                  </div>
+                  <h3 class="fw-bold mb-1" id="stat-followers">0</h3>
+                  <p class="text-muted mb-0">Total Followers</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-3">
+                <div class="stat-card p-4 h-100">
+                  <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-person-check-fill"></i>
+                  </div>
+                  <h3 class="fw-bold mb-1" id="stat-following">0</h3>
+                  <p class="text-muted mb-0">Total Following</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-3">
+                <div class="stat-card p-4 h-100">
+                  <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-person-x-fill"></i>
+                  </div>
+                  <h3 class="fw-bold mb-1" id="stat-not-back">0</h3>
+                  <p class="text-muted mb-0">Not Following Back</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-3">
+                <div class="stat-card p-4 h-100">
+                  <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-send-fill"></i>
+                  </div>
+                  <h3 class="fw-bold mb-1" id="stat-pending">0</h3>
+                  <p class="text-muted mb-0">Pending Requests</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-4">
+              <div class="col-lg-6">
+                <div class="user-list-card bg-white h-100">
+                  <div
+                    class="p-3 border-bottom d-flex justify-content-between align-items-center"
+                  >
+                    <h6 class="fw-bold m-0">
+                      <i class="bi bi-heartbreak text-danger me-2"></i>Recently
+                      Unfollowed
+                    </h6>
+                    <button
+                      class="btn btn-sm btn-link text-decoration-none"
+                      onclick="showSection('recently-unfollowed')"
+                    >
+                      View All
+                    </button>
+                  </div>
+                  <div id="preview-unfollowed" class="p-0">
+                    <!-- Preview items -->
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="user-list-card bg-white h-100">
+                  <div
+                    class="p-3 border-bottom d-flex justify-content-between align-items-center"
+                  >
+                    <h6 class="fw-bold m-0">
+                      <i class="bi bi-clock-history text-info me-2"></i>Recent
+                      Requests
+                    </h6>
+                    <button
+                      class="btn btn-sm btn-link text-decoration-none"
+                      onclick="showSection('recent-requests')"
+                    >
+                      View All
+                    </button>
+                  </div>
+                  <div id="preview-requests" class="p-0">
+                    <!-- Preview items -->
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="col-12 col-md-6">
-            <div class="card shadow-lg p-3 h-100">
-              <h5 class="fw-semibold">
-                You Don’t Follow Back
-                <span id="countYouDoNotFollow" class="badge ms-1"></span>
-              </h5>
-              <ul
-                id="listYouDoNotFollow"
-                class="list-group list-group-flush mt-2"
-              ></ul>
+
+          <!-- Generic List Section Container (reused for all lists) -->
+          <div id="list-section" class="content-section hidden">
+            <h2 class="fw-bold mb-4" id="list-title">Section Title</h2>
+            <div class="user-list-card bg-white">
+              <div class="p-3 border-bottom bg-light">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="search-input"
+                  placeholder="Search usernames..."
+                />
+              </div>
+              <div id="list-container">
+                <!-- List items will be injected here -->
+              </div>
             </div>
           </div>
         </div>
       </div>
+      <!-- /#page-content-wrapper -->
     </div>
+
     <script>
+      // State
+      const data = {
+        followers: new Set(),
+        following: new Set(),
+        notFollowingBack: [],
+        dontFollowBack: [],
+        pendingRequests: [],
+        recentRequests: [],
+        recentlyUnfollowed: [],
+        restrictedProfiles: [],
+      };
+
+      // Elements
       const zipInput = document.getElementById("zipInput");
       const analyzeBtn = document.getElementById("analyzeBtn");
-      const resultWrapper = document.getElementById("result");
-      const listNotFollowBack = document.getElementById("listNotFollowBack");
-      const listYouDoNotFollow = document.getElementById("listYouDoNotFollow");
-      const countNotFollowBack = document.getElementById("countNotFollowBack");
-      const countYouDoNotFollow = document.getElementById(
-        "countYouDoNotFollow",
-      );
+      const uploadView = document.getElementById("uploadView");
+      const dashboardView = document.getElementById("wrapper");
+
+      // Event Listeners
       zipInput.addEventListener(
         "change",
         () => (analyzeBtn.disabled = !zipInput.files.length),
       );
+
+      document
+        .getElementById("menu-toggle")
+        ?.addEventListener("click", function (e) {
+          e.preventDefault();
+          document.getElementById("wrapper").classList.toggle("toggled");
+        });
+
+      document
+        .getElementById("search-input")
+        .addEventListener("keyup", function (e) {
+          const term = e.target.value.toLowerCase();
+          const items = document.querySelectorAll("#list-container .user-item");
+          items.forEach((item) => {
+            const username = item.dataset.username;
+            if (username.includes(term)) {
+              item.classList.remove("d-none");
+            } else {
+              item.classList.add("d-none");
+            }
+          });
+        });
+
+      // Navigation Logic
+      function showSection(sectionId) {
+        // Update Sidebar Active State
+        document
+          .querySelectorAll(".list-group-item")
+          .forEach((el) => el.classList.remove("active"));
+        const activeLink = document.querySelector(
+          `[onclick="showSection('${sectionId}')"]`,
+        );
+        if (activeLink) activeLink.classList.add("active");
+
+        // Hide all sections
+        document.getElementById("overview-section").classList.add("hidden");
+        document.getElementById("list-section").classList.add("hidden");
+
+        if (sectionId === "overview") {
+          document
+            .getElementById("overview-section")
+            .classList.remove("hidden");
+        } else {
+          document.getElementById("list-section").classList.remove("hidden");
+          renderListSection(sectionId);
+        }
+
+        // On mobile, close sidebar after selection
+        if (window.innerWidth < 768) {
+          document.getElementById("wrapper").classList.remove("toggled");
+        }
+      }
+
+      function renderListSection(sectionId) {
+        let Title = "";
+        let ListData = [];
+
+        switch (sectionId) {
+          case "not-following-back":
+            Title = "Not Following You Back";
+            ListData = data.notFollowingBack;
+            break;
+          case "dont-follow-back":
+            Title = "You Don't Follow Back";
+            ListData = data.dontFollowBack;
+            break;
+          case "pending-requests":
+            Title = "Pending Follow Requests";
+            ListData = data.pendingRequests;
+            break;
+          case "recent-requests":
+            Title = "Recent Follow Requests";
+            ListData = data.recentRequests;
+            break;
+          case "recently-unfollowed":
+            Title = "Recently Unfollowed Profiles";
+            ListData = data.recentlyUnfollowed;
+            break;
+          case "restricted":
+            Title = "Restricted Profiles";
+            ListData = data.restrictedProfiles;
+            break;
+        }
+
+        document.getElementById("list-title").textContent =
+          `${Title} (${ListData.length})`;
+        const container = document.getElementById("list-container");
+        document.getElementById("search-input").value = "";
+
+        if (ListData.length === 0) {
+          container.innerHTML = `
+                  <div class="text-center p-5 text-muted">
+                      <i class="bi bi-check-circle display-4 mb-3 d-block text-success opacity-50"></i>
+                      <h5>No users found in this list.</h5>
+                  </div>
+              `;
+          return;
+        }
+
+        container.innerHTML = ListData.map(
+          (u) => `
+              <div class="user-item" data-username="${u}">
+                  <div class="user-avatar">
+                      <i class="bi bi-person"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                      <div class="fw-bold">@${u}</div>
+                      <div class="small text-muted">Instagram User</div>
+                  </div>
+                  <a href="https://www.instagram.com/${encodeURIComponent(u)}/" target="_blank" class="btn btn-sm btn-outline-primary">
+                      <i class="bi bi-instagram"></i> View
+                  </a>
+              </div>
+          `,
+        ).join("");
+      }
+
+      function updateDashboardCounts() {
+        // Badges
+        document.getElementById("badge-not-back").textContent =
+          data.notFollowingBack.length;
+        document.getElementById("badge-dont-back").textContent =
+          data.dontFollowBack.length;
+        document.getElementById("badge-pending").textContent =
+          data.pendingRequests.length;
+        document.getElementById("badge-recent").textContent =
+          data.recentRequests.length;
+        document.getElementById("badge-unfollowed").textContent =
+          data.recentlyUnfollowed.length;
+        document.getElementById("badge-restricted").textContent =
+          data.restrictedProfiles.length;
+
+        // Stat Cards
+        document.getElementById("stat-followers").textContent =
+          data.followers.size;
+        document.getElementById("stat-following").textContent =
+          data.following.size;
+        document.getElementById("stat-not-back").textContent =
+          data.notFollowingBack.length;
+        document.getElementById("stat-pending").textContent =
+          data.pendingRequests.length;
+
+        // Previews
+        const previewUnfollowed = data.recentlyUnfollowed.slice(0, 5);
+        document.getElementById("preview-unfollowed").innerHTML =
+          previewUnfollowed.length
+            ? previewUnfollowed
+                .map(
+                  (u) => `
+                <div class="px-3 py-2 border-bottom d-flex align-items-center">
+                    <div class="small fw-bold flex-grow-1">@${u}</div>
+                    <span class="badge bg-light text-dark border">Unfollowed</span>
+                </div>
+            `,
+                )
+                .join("")
+            : '<div class="p-3 text-muted small">No recently unfollowed profiles</div>';
+
+        const previewRequests = data.recentRequests.slice(0, 5);
+        document.getElementById("preview-requests").innerHTML =
+          previewRequests.length
+            ? previewRequests
+                .map(
+                  (u) => `
+                <div class="px-3 py-2 border-bottom d-flex align-items-center">
+                    <div class="small fw-bold flex-grow-1">@${u}</div>
+                    <span class="badge bg-light text-dark border">Requested</span>
+                </div>
+            `,
+                )
+                .join("")
+            : '<div class="p-3 text-muted small">No recent requests</div>';
+      }
+
+      // Logic
       analyzeBtn.addEventListener("click", async () => {
         const file = zipInput.files[0];
         if (!file) return;
-        analyzeBtn.disabled = true;
+
+        const btn = analyzeBtn;
+        const spinner = btn.querySelector(".spinner-border");
+        btn.disabled = true;
+        spinner.classList.remove("d-none");
+        document.getElementById("errorMsg").classList.add("hidden");
+
         try {
           const arrayBuffer = await file.arrayBuffer();
           const zip = await JSZip.loadAsync(arrayBuffer);
-          const followerEntries = [];
-          const followingEntries = [];
+
+          const files = {
+            followers: [],
+            following: [],
+            pending: null,
+            recent: null,
+            unfollowed: null,
+            restricted: null,
+          };
+
+          // Find files
           zip.forEach((path, entry) => {
             if (
               /connections\/followers_and_following\/followers_\d+\.html$/i.test(
                 path,
               )
-            )
-              followerEntries.push(entry);
-            else if (
+            ) {
+              files.followers.push(entry);
+            } else if (
               /connections\/followers_and_following\/following\.html$/i.test(
                 path,
               )
-            )
-              followingEntries.push(entry);
+            ) {
+              files.following.push(entry);
+            } else if (
+              /connections\/followers_and_following\/pending_follow_requests\.html$/i.test(
+                path,
+              )
+            ) {
+              files.pending = entry;
+            } else if (
+              /connections\/followers_and_following\/recent_follow_requests\.html$/i.test(
+                path,
+              )
+            ) {
+              files.recent = entry;
+            } else if (
+              /connections\/followers_and_following\/recently_unfollowed_profiles\.html$/i.test(
+                path,
+              )
+            ) {
+              files.unfollowed = entry;
+            } else if (
+              /connections\/followers_and_following\/restricted_profiles\.html$/i.test(
+                path,
+              )
+            ) {
+              files.restricted = entry;
+            }
           });
-          if (!followerEntries.length || !followingEntries.length) {
-            alert(
-              "Required files not found. Please upload the correct 'connections/followers_and_following' HTML files.",
-            );
-            analyzeBtn.disabled = false;
-            return;
+
+          if (!files.followers.length || !files.following.length) {
+            throw new Error("Required follower/following files not found.");
           }
 
+          // Helpers
           const extractUsernameFromLink = (a) => {
-            // Try to get username from href first
             try {
               const url = new URL(a.href);
-              // Handle /_u/username and /username
               const parts = url.pathname.split("/").filter(Boolean);
               if (parts.length > 0) {
                 if (parts[0] === "_u" && parts[1]) return parts[1];
                 if (parts[0] !== "_u") return parts[0];
               }
-            } catch (e) {
-              // ignore invalid urls
-            }
-            // Fallback to text content if it looks like a username
+            } catch (e) {}
             const text = a.textContent.trim();
             if (/^[a-zA-Z0-9._]+$/.test(text)) return text;
             return null;
           };
 
-          const parseUsersFromHTML = (htmlContent) => {
+          const parseUsers = (html) => {
             const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, "text/html");
+            const doc = parser.parseFromString(html, "text/html");
             const links = doc.querySelectorAll("a");
             const users = new Set();
             links.forEach((a) => {
@@ -213,53 +779,60 @@
             return users;
           };
 
-          const followersSet = new Set();
-          for (const entry of followerEntries) {
+          // Process
+          data.followers = new Set();
+          for (const entry of files.followers) {
             const html = await entry.async("string");
-            const users = parseUsersFromHTML(html);
-            users.forEach((u) => followersSet.add(u));
+            parseUsers(html).forEach((u) => data.followers.add(u));
           }
 
-          const followingSet = new Set();
-          for (const entry of followingEntries) {
+          data.following = new Set();
+          for (const entry of files.following) {
             const html = await entry.async("string");
-            const users = parseUsersFromHTML(html);
-            users.forEach((u) => followingSet.add(u));
+            parseUsers(html).forEach((u) => data.following.add(u));
           }
-          const notFollowingBack = [...followingSet].filter(
-            (u) => !followersSet.has(u),
+
+          if (files.pending) {
+            const html = await files.pending.async("string");
+            data.pendingRequests = Array.from(parseUsers(html));
+          }
+          if (files.recent) {
+            const html = await files.recent.async("string");
+            data.recentRequests = Array.from(parseUsers(html));
+          }
+          if (files.unfollowed) {
+            const html = await files.unfollowed.async("string");
+            data.recentlyUnfollowed = Array.from(parseUsers(html));
+          }
+          if (files.restricted) {
+            const html = await files.restricted.async("string");
+            data.restrictedProfiles = Array.from(parseUsers(html));
+          }
+
+          // Compute Diff
+          data.notFollowingBack = [...data.following].filter(
+            (u) => !data.followers.has(u),
           );
-          const youDoNotFollow = [...followersSet].filter(
-            (u) => !followingSet.has(u),
+          data.dontFollowBack = [...data.followers].filter(
+            (u) => !data.following.has(u),
           );
-          listNotFollowBack.innerHTML = notFollowingBack.length
-            ? notFollowingBack
-                .map(
-                  (u) =>
-                    `<li class="list-group-item"><a href="https://www.instagram.com/${encodeURIComponent(
-                      u,
-                    )}/" target="_blank" rel="noopener noreferrer">@${u}</a></li>`,
-                )
-                .join("")
-            : "<li class='list-group-item'>🎉 None!</li>";
-          listYouDoNotFollow.innerHTML = youDoNotFollow.length
-            ? youDoNotFollow
-                .map(
-                  (u) =>
-                    `<li class="list-group-item"><a href="https://www.instagram.com/${encodeURIComponent(
-                      u,
-                    )}/" target="_blank" rel="noopener noreferrer">@${u}</a></li>`,
-                )
-                .join("")
-            : "<li class='list-group-item'>🎉 None!</li>";
-          countNotFollowBack.textContent = notFollowingBack.length;
-          countYouDoNotFollow.textContent = youDoNotFollow.length;
-          resultWrapper.classList.remove("d-none");
+
+          // Render
+          updateDashboardCounts();
+
+          // Switch View
+          uploadView.classList.add("hidden");
+          dashboardView.classList.remove("hidden");
+          showSection("overview");
         } catch (err) {
           console.error(err);
-          alert("Error processing ZIP.");
+          document.getElementById("errorMsg").textContent =
+            err.message ||
+            "Error processing file. Please ensure it is a valid Instagram data export.";
+          document.getElementById("errorMsg").classList.remove("hidden");
         } finally {
-          analyzeBtn.disabled = false;
+          btn.disabled = false;
+          spinner.classList.add("d-none");
         }
       });
     </script>
