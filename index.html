@@ -3,490 +3,855 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Instagram Insights Dashboard</title>
+    <title>Nonfollowers</title>
     <link rel="icon" type="image/png" href="./instagram.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      crossorigin="anonymous"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
+      /* ---------- tokens ---------- */
       :root {
-        --primary-gradient: linear-gradient(
-          45deg,
-          #f09433 0%,
-          #e6683c 25%,
-          #dc2743 50%,
-          #cc2366 75%,
-          #bc1888 100%
-        );
-        --sidebar-width: 280px;
-        --bg-light: #f8f9fa;
-        --card-bg: #ffffff;
+        color-scheme: light;
+        --paper: #f3f5f1;
+        --sheet: #fafbf8;
+        --ink: #1a201c;
+        --rule: #cbd3c7;
+        --deficit: #9e2b22;
+        --surplus: #2e6b4f;
+        --muted: #5f6a5c;
+        --zebra: rgba(26, 32, 28, 0.035);
+        --hover: rgba(26, 32, 28, 0.055);
+        --ruling: rgba(26, 32, 28, 0.05);
+
+        --rail: 15.5rem;
+        --sheet-max: 52rem;
+        --face:
+          Archivo, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          color-scheme: dark;
+          --paper: #151a17;
+          --sheet: #1b211d;
+          --ink: #edf0ea;
+          --rule: #2c3630;
+          --deficit: #e06a5c;
+          --surplus: #5fae85;
+          --muted: #8c978a;
+          --zebra: rgba(237, 240, 234, 0.04);
+          --hover: rgba(237, 240, 234, 0.07);
+          --ruling: rgba(237, 240, 234, 0.055);
+        }
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --paper: #151a17;
+        --sheet: #1b211d;
+        --ink: #edf0ea;
+        --rule: #2c3630;
+        --deficit: #e06a5c;
+        --surplus: #5fae85;
+        --muted: #8c978a;
+        --zebra: rgba(237, 240, 234, 0.04);
+        --hover: rgba(237, 240, 234, 0.07);
+        --ruling: rgba(237, 240, 234, 0.055);
+      }
+
+      /* ---------- base ---------- */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
       }
 
       body {
-        font-family:
-          "Segoe UI",
-          system-ui,
-          -apple-system,
-          sans-serif;
-        background-color: var(--bg-light);
-        overflow-x: hidden;
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--face);
+        font-size: 0.9375rem;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
       }
 
-      #wrapper {
-        display: flex;
-        width: 100%;
-        min-height: 100vh;
+      h1,
+      h2,
+      p,
+      dl,
+      dd,
+      dt,
+      ol,
+      figure {
+        margin: 0;
       }
 
-      #sidebar-wrapper {
-        min-height: 100vh;
-        width: var(--sidebar-width);
-        margin-left: -var(--sidebar-width);
-        transition: margin 0.25s ease-out;
-        position: fixed;
-        z-index: 1000;
-        background: #fff;
-        border-right: 1px solid #dee2e6;
+      ol {
+        list-style: none;
+        padding: 0;
       }
 
-      #wrapper.toggled #sidebar-wrapper {
-        margin-left: 0;
+      button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
       }
 
-      #page-content-wrapper {
-        width: 100%;
-        transition: margin 0.25s ease-out;
-        padding-left: 0;
+      a {
+        color: inherit;
       }
 
-      #wrapper.toggled #page-content-wrapper {
-        padding-left: var(--sidebar-width);
+      :focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
       }
 
-      @media (min-width: 768px) {
-        #sidebar-wrapper {
-          margin-left: 0;
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          overflow-y: auto;
-        }
-        #page-content-wrapper {
-          padding-left: 0;
-        }
-        #wrapper.toggled #sidebar-wrapper {
-          margin-left: -var(--sidebar-width);
-        }
-      }
-
-      .sidebar-heading {
-        padding: 1.5rem 1.25rem;
-        font-size: 1.5rem;
-        font-weight: bold;
-        background: var(--primary-gradient);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .list-group-item {
-        border: none;
-        padding: 0.75rem 1.25rem;
-        font-weight: 500;
-        color: #495057;
-        border-radius: 0.5rem;
-        margin: 0.2rem 0.5rem;
-        transition: all 0.2s;
-      }
-
-      .list-group-item:hover {
-        background-color: #f8f9fa;
-        color: #dc2743;
-      }
-
-      .list-group-item.active {
-        background: var(--primary-gradient);
-        color: #fff;
-        border: none;
-      }
-
-      .stat-card {
-        border: none;
-        border-radius: 1rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        transition: transform 0.2s;
-        background: var(--card-bg);
-      }
-
-      .stat-card:hover {
-        transform: translateY(-5px);
-      }
-
-      .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-      }
-
-      .user-list-card {
-        border: none;
-        border-radius: 1rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        overflow: hidden;
-      }
-
-      .user-item {
-        display: flex;
-        align-items: center;
-        padding: 1rem;
-        border-bottom: 1px solid #f1f1f1;
-        transition: background 0.2s;
-      }
-
-      .user-item:hover {
-        background-color: #fcfcfc;
-      }
-
-      .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: #e9ecef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 1rem;
-        color: #adb5bd;
-        font-size: 1.2rem;
-      }
-
-      .upload-area {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--primary-gradient);
-      }
-
-      .upload-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 2rem;
-        padding: 3rem;
-        max-width: 500px;
-        width: 90%;
-        text-align: center;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-      }
-
-      .hidden {
+      [hidden] {
         display: none !important;
       }
 
-      /* Scrollbar styling */
-      ::-webkit-scrollbar {
-        width: 8px;
+      .num {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
       }
-      ::-webkit-scrollbar-track {
-        background: #f1f1f1;
+
+      /* ---------- upload ---------- */
+      .intake {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 2rem 1.25rem;
+        background-image: repeating-linear-gradient(
+          transparent 0 2.4375rem,
+          var(--ruling) 2.4375rem 2.5rem
+        );
       }
-      ::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 4px;
+
+      .intake-sheet {
+        width: 100%;
+        max-width: 34rem;
+        background: var(--sheet);
+        border: 1px solid var(--rule);
+        padding: 2.5rem;
       }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #bababa;
+
+      .wordmark {
+        font-size: 1.75rem;
+        font-weight: 700;
+        font-stretch: 125%;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+
+      .intake-sheet p {
+        color: var(--muted);
+        margin: 0.75rem 0 2rem;
+        max-width: 42ch;
+      }
+
+      .slots {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--rule);
+        border: 1px solid var(--rule);
+      }
+
+      .slot {
+        position: relative;
+        background: var(--sheet);
+        padding: 0.875rem 1rem 1rem;
+        min-height: 6.25rem;
+      }
+
+      .slot:focus-within {
+        outline: 2px solid var(--ink);
+        outline-offset: -2px;
+      }
+
+      .slot-input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      .slot-label {
+        display: block;
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+
+      .slot-name {
+        margin-top: 0.5rem;
+        font-weight: 500;
+        overflow-wrap: anywhere;
+      }
+
+      .slot-empty .slot-name {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .slot-date {
+        margin-top: 0.25rem;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .intake-note {
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-top: 0.75rem;
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+
+      .linkish {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .linkish:hover {
+        color: var(--deficit);
+      }
+
+      .go {
+        width: 100%;
+        margin-top: 1.5rem;
+        padding: 0.9375rem;
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 600;
+        font-stretch: 112%;
+      }
+
+      .go[disabled] {
+        background: none;
+        color: var(--muted);
+        box-shadow: inset 0 0 0 1px var(--rule);
+        cursor: not-allowed;
+      }
+
+      .go:not([disabled]):hover {
+        background: var(--deficit);
+      }
+
+      .fault {
+        margin-top: 1rem;
+        color: var(--deficit);
+        font-size: 0.875rem;
+      }
+
+      /* ---------- shell ---------- */
+      #app {
+        display: flex;
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+
+      .rail {
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 var(--rail);
+        width: var(--rail);
+        border-right: 1px solid var(--rule);
+        background: var(--sheet);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        height: 100dvh;
+        overflow-y: auto;
+        padding: 1.75rem 0 1rem;
+      }
+
+      .rail-brand {
+        padding: 0 1.25rem 1.5rem;
+        font-size: 1.125rem;
+        font-weight: 700;
+        font-stretch: 125%;
+        letter-spacing: -0.015em;
+      }
+
+      .rail-index {
+        flex: 1;
+      }
+
+      .idx-group {
+        border-top: 1px solid var(--rule);
+        padding: 0.5rem 0;
+      }
+
+      .idx {
+        display: flex;
+        gap: 0.75rem;
+        align-items: baseline;
+        width: 100%;
+        padding: 0.375rem 1.25rem;
+        text-align: left;
+        color: var(--muted);
+      }
+
+      .idx:hover {
+        background: var(--hover);
+        color: var(--ink);
+      }
+
+      .idx[aria-current="true"] {
+        color: var(--ink);
+        font-weight: 600;
+        background: var(--hover);
+        box-shadow: inset 2px 0 0 var(--deficit);
+      }
+
+      .idx-name {
+        flex: 1;
+      }
+
+      .idx-n {
+        font-variant-numeric: tabular-nums;
+        font-size: 0.875rem;
+      }
+
+      .idx-n.surplus {
+        color: var(--surplus);
+      }
+
+      .idx-n.deficit {
+        color: var(--deficit);
+      }
+
+      .rail-actions {
+        display: flex;
+        gap: 1rem;
+        padding: 0.875rem 1.25rem 0;
+        border-top: 1px solid var(--rule);
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+
+      .rail-actions button:hover {
+        color: var(--ink);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      main {
+        flex: 1;
+        min-width: 0;
+        padding: 2.75rem 2rem 5rem;
+      }
+
+      .sheet {
+        max-width: var(--sheet-max);
+      }
+
+      .sheet-head {
+        display: flex;
+        gap: 1.5rem;
+        align-items: baseline;
+        justify-content: space-between;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--ink);
+      }
+
+      .sheet-head h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        font-stretch: 118%;
+        letter-spacing: -0.015em;
+      }
+
+      .sheet-meta {
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+
+      /* ---------- ledger ---------- */
+      .ledger .row {
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        padding: 0.4375rem 0.75rem;
+      }
+
+      /* tally rows never filter, so source order is enough */
+      .tally .row:nth-child(odd) {
+        background: var(--zebra);
+      }
+
+      /* list rows do filter; nth-child counts hidden rows, so stripe by class */
+      .rows .row.alt {
+        background: var(--zebra);
+      }
+
+      .ledger dt,
+      .ledger .row-name {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .ledger dd {
+        font-variant-numeric: tabular-nums;
+        min-width: 5rem;
+        text-align: right;
+      }
+
+      .tally {
+        margin-top: 1.5rem;
+      }
+
+      .tally .rule-row {
+        border-top: 1px solid var(--rule);
+      }
+
+      .surplus {
+        color: var(--surplus);
+      }
+
+      .deficit {
+        color: var(--deficit);
+      }
+
+      /* the one bold moment */
+      .gap {
+        display: flex;
+        align-items: baseline;
+        gap: 1.25rem;
+        margin: 2.5rem 0 3rem;
+        padding-left: 0.75rem;
+      }
+
+      .gap-n {
+        font-size: clamp(3.5rem, 13vw, 6.5rem);
+        font-weight: 700;
+        font-stretch: 125%;
+        line-height: 0.82;
+        letter-spacing: -0.04em;
+        font-variant-numeric: tabular-nums;
+        color: var(--deficit);
+      }
+
+      .gap-label {
+        max-width: 11ch;
+        color: var(--muted);
+        padding-bottom: 0.4em;
+      }
+
+      .since-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0 0.75rem 0.5rem;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .since-head h2 {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .since-head span {
+        color: var(--muted);
+        font-size: 0.8125rem;
+      }
+
+      .prompt {
+        margin-top: 2.5rem;
+        padding: 1.25rem;
+        border: 1px solid var(--rule);
+        color: var(--muted);
+        max-width: 46ch;
+      }
+
+      /* ---------- list view ---------- */
+      .filter {
+        display: block;
+        width: 100%;
+        margin: 1.25rem 0 1rem;
+        padding: 0.625rem 0.75rem;
+        font: inherit;
+        color: inherit;
+        background: var(--sheet);
+        border: 1px solid var(--rule);
+      }
+
+      .filter::placeholder {
+        color: var(--muted);
+      }
+
+      .rows {
+        counter-reset: line;
+      }
+
+      .rows .row {
+        counter-increment: line;
+      }
+
+      .rows .row::before {
+        content: counter(line);
+        min-width: 2.5rem;
+        font-variant-numeric: tabular-nums;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        text-align: right;
+      }
+
+      .rows .row:hover {
+        background: var(--hover);
+      }
+
+      .handle {
+        font-weight: 500;
+        overflow-wrap: anywhere;
+      }
+
+      .open {
+        font-size: 0.8125rem;
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .row:hover .open,
+      .open:focus-visible {
+        color: var(--deficit);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .nothing {
+        padding: 3rem 0.75rem;
+        color: var(--muted);
+        max-width: 44ch;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .counting {
+          animation: settle 0.5s ease-out;
+        }
+        @keyframes settle {
+          from {
+            opacity: 0.55;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+
+      /* ---------- narrow ---------- */
+      @media (max-width: 54rem) {
+        #app {
+          flex-direction: column;
+        }
+
+        .rail {
+          flex: none;
+          width: 100%;
+          height: auto;
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: baseline;
+          border-right: 0;
+          border-bottom: 1px solid var(--rule);
+          padding: 1rem 0 0;
+          overflow: visible;
+        }
+
+        .rail-brand {
+          order: 1;
+          flex: 1;
+          padding: 0 1rem 0.875rem;
+        }
+
+        /* actions belong beside the wordmark; the index wraps beneath both */
+        .rail-actions {
+          order: 2;
+          border-top: 0;
+          padding: 0 1rem 0.875rem;
+        }
+
+        .rail-index {
+          order: 3;
+          flex: 0 0 100%;
+          display: flex;
+          overflow-x: auto;
+          border-top: 1px solid var(--rule);
+          scrollbar-width: thin;
+        }
+
+        .idx-group {
+          display: flex;
+          border-top: 0;
+          padding: 0;
+        }
+
+        .idx-group + .idx-group {
+          border-left: 1px solid var(--rule);
+        }
+
+        .idx {
+          width: auto;
+          white-space: nowrap;
+          padding: 0.75rem 1rem;
+        }
+
+        .idx[aria-current="true"] {
+          box-shadow: inset 0 -2px 0 var(--deficit);
+        }
+
+        .idx-name {
+          flex: none;
+        }
+
+        main {
+          padding: 1.75rem 1rem 4rem;
+        }
+
+        /* stacked, the required slot leads so a one-export user starts right */
+        .slots {
+          grid-template-columns: 1fr;
+        }
+
+        #slot-newer {
+          order: 1;
+        }
+
+        #slot-older {
+          order: 2;
+        }
+
+        .intake-sheet {
+          padding: 1.75rem 1.25rem;
+        }
       }
     </style>
   </head>
   <body>
-    <!-- Upload View -->
-    <div id="uploadView" class="upload-area">
-      <div class="upload-card">
-        <img
-          src="instagram.png"
-          alt="Logo"
-          width="80"
-          class="mb-4 rounded-3 shadow-sm"
-        />
-        <h2 class="fw-bold mb-3">Instagram Insights</h2>
-        <p class="text-muted mb-4">
-          Upload your Instagram data zip file to inspect your followers,
-          requests, and more.
+    <!-- ══ intake ══ -->
+    <div class="intake" id="intake">
+      <div class="intake-sheet">
+        <div class="wordmark">Nonfollowers</div>
+        <p>
+          Reconcile who you follow against who follows you. Add an older export
+          and it will also show who left. Your files are read in this browser
+          and never uploaded.
         </p>
 
-        <div class="mb-4 text-start">
-          <label
-            for="zipInput"
-            class="form-label fw-semibold text-secondary small text-uppercase"
-            >Select Zip File</label
-          >
-          <input
-            type="file"
-            id="zipInput"
-            accept=".zip"
-            class="form-control form-control-lg"
-          />
+        <div class="slots">
+          <div class="slot slot-empty" id="slot-older">
+            <label class="slot-label" for="file-older">Older export</label>
+            <input
+              type="file"
+              id="file-older"
+              class="slot-input"
+              accept=".zip"
+              aria-describedby="name-older"
+            />
+            <div class="slot-name" id="name-older">Optional</div>
+            <div class="slot-date" id="date-older"></div>
+          </div>
+
+          <div class="slot slot-empty" id="slot-newer">
+            <label class="slot-label" for="file-newer">Newer export</label>
+            <input
+              type="file"
+              id="file-newer"
+              class="slot-input"
+              accept=".zip"
+              aria-describedby="name-newer"
+            />
+            <div class="slot-name" id="name-newer">Choose a zip</div>
+            <div class="slot-date" id="date-newer"></div>
+          </div>
         </div>
 
-        <button
-          id="analyzeBtn"
-          class="btn btn-dark btn-lg w-100 py-3 rounded-pill fw-bold"
-          disabled
-        >
-          <span
-            class="spinner-border spinner-border-sm d-none me-2"
-            role="status"
-            aria-hidden="true"
-          ></span>
-          Analyze Data
-        </button>
-        <p id="errorMsg" class="text-danger mt-3 small hidden"></p>
+        <div class="intake-note">
+          <span id="order-note"></span>
+          <button type="button" class="linkish" id="swap" hidden>
+            Swap them
+          </button>
+        </div>
+
+        <button class="go" id="go" disabled>Read the export</button>
+        <p class="fault" id="fault" hidden></p>
       </div>
     </div>
 
-    <!-- Dashboard View -->
-    <div class="d-flex hidden" id="wrapper">
-      <!-- Sidebar -->
-      <div id="sidebar-wrapper">
-        <div class="sidebar-heading">
-          <img src="instagram.png" alt="Logo" width="30" height="30" /> Insights
+    <!-- ══ dashboard ══ -->
+    <div id="app" hidden>
+      <nav class="rail" aria-label="Sections">
+        <span class="rail-brand">Nonfollowers</span>
+        <div class="rail-index" id="rail-index"></div>
+        <div class="rail-actions">
+          <button type="button" id="theme">Dark</button>
+          <button type="button" id="restart">New file</button>
         </div>
-        <div class="list-group list-group-flush my-3">
-          <a
-            href="#"
-            class="list-group-item list-group-item-action active"
-            onclick="showSection('overview')"
-          >
-            <i class="bi bi-grid-fill me-2"></i> Overview
-          </a>
-          <a
-            href="#"
-            class="list-group-item list-group-item-action"
-            onclick="showSection('not-following-back')"
-          >
-            <i class="bi bi-person-x-fill me-2"></i> Not Following Back
-            <span
-              class="badge bg-danger rounded-pill float-end"
-              id="badge-not-back"
-              >0</span
-            >
-          </a>
-          <a
-            href="#"
-            class="list-group-item list-group-item-action"
-            onclick="showSection('dont-follow-back')"
-          >
-            <i class="bi bi-person-dash-fill me-2"></i> You Don't Follow Back
-            <span
-              class="badge bg-secondary rounded-pill float-end"
-              id="badge-dont-back"
-              >0</span
-            >
-          </a>
-          <div class="mt-3 mb-1 px-3 text-muted small text-uppercase fw-bold">
-            Requests & Activity
-          </div>
-          <a
-            href="#"
-            class="list-group-item list-group-item-action"
-            onclick="showSection('pending-requests')"
-          >
-            <i class="bi bi-send-fill me-2"></i> Pending Requests
-            <span
-              class="badge bg-warning text-dark rounded-pill float-end"
-              id="badge-pending"
-              >0</span
-            >
-          </a>
-          <a
-            href="#"
-            class="list-group-item list-group-item-action"
-            onclick="showSection('recent-requests')"
-          >
-            <i class="bi bi-clock-history me-2"></i> Recent Requests
-            <span
-              class="badge bg-info text-dark rounded-pill float-end"
-              id="badge-recent"
-              >0</span
-            >
-          </a>
-          <a
-            href="#"
-            class="list-group-item list-group-item-action"
-            onclick="showSection('recently-unfollowed')"
-          >
-            <i class="bi bi-heartbreak-fill me-2"></i> Recently Unfollowed
-            <span
-              class="badge bg-dark rounded-pill float-end"
-              id="badge-unfollowed"
-              >0</span
-            >
-          </a>
-          <a
-            href="#"
-            class="list-group-item list-group-item-action"
-            onclick="showSection('restricted')"
-          >
-            <i class="bi bi-shield-lock-fill me-2"></i> Restricted Profiles
-            <span
-              class="badge bg-danger rounded-pill float-end"
-              id="badge-restricted"
-              >0</span
-            >
-          </a>
+      </nav>
 
-          <div class="mt-auto px-3 pb-3 pt-5">
-            <button
-              onclick="location.reload()"
-              class="btn btn-outline-danger w-100 btn-sm"
-            >
-              <i class="bi bi-box-arrow-left me-1"></i> Upload New File
-            </button>
-          </div>
-        </div>
-      </div>
-      <!-- /#sidebar-wrapper -->
+      <main>
+        <!-- reconciliation -->
+        <section class="sheet" id="view-overview">
+          <header class="sheet-head">
+            <h1>Reconciliation</h1>
+            <div class="sheet-meta" id="dated"></div>
+          </header>
 
-      <!-- Page Content -->
-      <div id="page-content-wrapper">
-        <nav
-          class="navbar navbar-expand-lg navbar-light bg-light border-bottom px-4 py-3 d-md-none"
-        >
-          <button class="btn btn-primary" id="menu-toggle">
-            <i class="bi bi-list"></i> Menu
-          </button>
-        </nav>
-
-        <div class="container-fluid p-4">
-          <!-- Section: Overview -->
-          <div id="overview-section" class="content-section">
-            <h2 class="fw-bold mb-4">Dashboard Overview</h2>
-            <div class="row g-4 mb-4">
-              <div class="col-md-6 col-lg-3">
-                <div class="stat-card p-4 h-100">
-                  <div class="stat-icon bg-primary bg-opacity-10 text-primary">
-                    <i class="bi bi-people-fill"></i>
-                  </div>
-                  <h3 class="fw-bold mb-1" id="stat-followers">0</h3>
-                  <p class="text-muted mb-0">Total Followers</p>
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <div class="stat-card p-4 h-100">
-                  <div class="stat-icon bg-success bg-opacity-10 text-success">
-                    <i class="bi bi-person-check-fill"></i>
-                  </div>
-                  <h3 class="fw-bold mb-1" id="stat-following">0</h3>
-                  <p class="text-muted mb-0">Total Following</p>
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <div class="stat-card p-4 h-100">
-                  <div class="stat-icon bg-danger bg-opacity-10 text-danger">
-                    <i class="bi bi-person-x-fill"></i>
-                  </div>
-                  <h3 class="fw-bold mb-1" id="stat-not-back">0</h3>
-                  <p class="text-muted mb-0">Not Following Back</p>
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <div class="stat-card p-4 h-100">
-                  <div class="stat-icon bg-warning bg-opacity-10 text-warning">
-                    <i class="bi bi-send-fill"></i>
-                  </div>
-                  <h3 class="fw-bold mb-1" id="stat-pending">0</h3>
-                  <p class="text-muted mb-0">Pending Requests</p>
-                </div>
-              </div>
+          <dl class="ledger tally">
+            <div class="row">
+              <dt>You follow</dt>
+              <dd class="num" id="n-following">0</dd>
             </div>
-
-            <div class="row g-4">
-              <div class="col-lg-6">
-                <div class="user-list-card bg-white h-100">
-                  <div
-                    class="p-3 border-bottom d-flex justify-content-between align-items-center"
-                  >
-                    <h6 class="fw-bold m-0">
-                      <i class="bi bi-heartbreak text-danger me-2"></i>Recently
-                      Unfollowed
-                    </h6>
-                    <button
-                      class="btn btn-sm btn-link text-decoration-none"
-                      onclick="showSection('recently-unfollowed')"
-                    >
-                      View All
-                    </button>
-                  </div>
-                  <div id="preview-unfollowed" class="p-0">
-                    <!-- Preview items -->
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-6">
-                <div class="user-list-card bg-white h-100">
-                  <div
-                    class="p-3 border-bottom d-flex justify-content-between align-items-center"
-                  >
-                    <h6 class="fw-bold m-0">
-                      <i class="bi bi-clock-history text-info me-2"></i>Recent
-                      Requests
-                    </h6>
-                    <button
-                      class="btn btn-sm btn-link text-decoration-none"
-                      onclick="showSection('recent-requests')"
-                    >
-                      View All
-                    </button>
-                  </div>
-                  <div id="preview-requests" class="p-0">
-                    <!-- Preview items -->
-                  </div>
-                </div>
-              </div>
+            <div class="row">
+              <dt>They follow you</dt>
+              <dd class="num" id="n-followers">0</dd>
             </div>
+          </dl>
+
+          <div class="gap">
+            <div class="gap-n" id="n-gap">0</div>
+            <div class="gap-label">Don't follow you back</div>
           </div>
 
-          <!-- Generic List Section Container (reused for all lists) -->
-          <div id="list-section" class="content-section hidden">
-            <h2 class="fw-bold mb-4" id="list-title">Section Title</h2>
-            <div class="user-list-card bg-white">
-              <div class="p-3 border-bottom bg-light">
-                <input
-                  type="text"
-                  class="form-control"
-                  id="search-input"
-                  placeholder="Search usernames..."
-                />
-              </div>
-              <div id="list-container">
-                <!-- List items will be injected here -->
-              </div>
+          <section id="since" hidden>
+            <div class="since-head">
+              <h2 id="since-title">Since</h2>
+              <span id="since-span"></span>
             </div>
-          </div>
-        </div>
-      </div>
-      <!-- /#page-content-wrapper -->
+            <dl class="ledger tally" id="since-tally"></dl>
+          </section>
+
+          <p class="prompt" id="prompt" hidden>
+            Add an older export next time and this sheet will also show who
+            followed you and who left in between — the one thing Instagram's own
+            export never tells you.
+          </p>
+        </section>
+
+        <!-- any list -->
+        <section class="sheet" id="view-list" hidden>
+          <header class="sheet-head">
+            <h1 id="list-title"></h1>
+            <div class="sheet-meta" id="list-meta"></div>
+          </header>
+          <label class="slot-label" for="filter" hidden>Filter usernames</label>
+          <input
+            class="filter"
+            id="filter"
+            type="search"
+            placeholder="Filter usernames"
+            autocomplete="off"
+          />
+          <ol class="ledger rows" id="rows"></ol>
+        </section>
+      </main>
     </div>
 
     <script>
-      // State
+      // ── section catalogue: one source of truth for rail, titles, and data ──
+      const SECTIONS = {
+        "not-following-back": {
+          group: 0,
+          name: "Not following back",
+          title: "Not following you back",
+          key: "notFollowingBack",
+          tone: "deficit",
+          empty: "Everyone you follow follows you back.",
+        },
+        "dont-follow-back": {
+          group: 0,
+          name: "You don't follow back",
+          title: "You don't follow back",
+          key: "dontFollowBack",
+          empty: "You follow back everyone who follows you.",
+        },
+        "pending-requests": {
+          group: 1,
+          name: "Pending requests",
+          title: "Pending follow requests",
+          key: "pendingRequests",
+          empty: "No requests of yours are waiting on a reply.",
+        },
+        "recent-requests": {
+          group: 1,
+          name: "Recent requests",
+          title: "Recent follow requests",
+          key: "recentRequests",
+          empty: "No recent requests in this export.",
+        },
+        "recently-unfollowed": {
+          group: 1,
+          name: "Recently unfollowed",
+          title: "Profiles you recently unfollowed",
+          key: "recentlyUnfollowed",
+          empty: "You haven't unfollowed anyone recently.",
+        },
+        restricted: {
+          group: 1,
+          name: "Restricted",
+          title: "Restricted profiles",
+          key: "restrictedProfiles",
+          empty: "No profiles are restricted.",
+        },
+        "new-followers": {
+          group: 2,
+          name: "New followers",
+          title: "New followers",
+          key: "newFollowers",
+          tone: "surplus",
+          sign: "+",
+          compare: true,
+          empty: "Nobody new followed you between these two exports.",
+        },
+        "lost-followers": {
+          group: 2,
+          name: "Unfollowed you",
+          title: "Unfollowed you",
+          key: "lostFollowers",
+          tone: "deficit",
+          sign: "−",
+          compare: true,
+          empty: "Nobody unfollowed you between these two exports.",
+        },
+        "started-following": {
+          group: 2,
+          name: "You started following",
+          title: "You started following",
+          key: "startedFollowing",
+          tone: "surplus",
+          sign: "+",
+          compare: true,
+          empty: "You didn't follow anyone new between these two exports.",
+        },
+        "stopped-following": {
+          group: 2,
+          name: "You stopped following",
+          title: "You stopped following",
+          key: "stoppedFollowing",
+          tone: "deficit",
+          sign: "−",
+          compare: true,
+          empty: "You didn't unfollow anyone between these two exports.",
+        },
+      };
+
       const data = {
         followers: new Set(),
         following: new Set(),
@@ -496,345 +861,437 @@
         recentRequests: [],
         recentlyUnfollowed: [],
         restrictedProfiles: [],
+        newFollowers: [],
+        lostFollowers: [],
+        startedFollowing: [],
+        stoppedFollowing: [],
       };
 
-      // Elements
-      const zipInput = document.getElementById("zipInput");
-      const analyzeBtn = document.getElementById("analyzeBtn");
-      const uploadView = document.getElementById("uploadView");
-      const dashboardView = document.getElementById("wrapper");
+      const picked = { older: null, newer: null };
+      let compared = false;
 
-      // Event Listeners
-      zipInput.addEventListener(
-        "change",
-        () => (analyzeBtn.disabled = !zipInput.files.length),
-      );
+      const $ = (id) => document.getElementById(id);
+      const num = (n) => n.toLocaleString();
 
-      document
-        .getElementById("menu-toggle")
-        ?.addEventListener("click", function (e) {
-          e.preventDefault();
-          document.getElementById("wrapper").classList.toggle("toggled");
-        });
+      // ── theme ──
+      const root = document.documentElement;
+      const themeBtn = $("theme");
 
-      document
-        .getElementById("search-input")
-        .addEventListener("keyup", function (e) {
-          const term = e.target.value.toLowerCase();
-          const items = document.querySelectorAll("#list-container .user-item");
-          items.forEach((item) => {
-            const username = item.dataset.username;
-            if (username.includes(term)) {
-              item.classList.remove("d-none");
-            } else {
-              item.classList.add("d-none");
-            }
-          });
-        });
+      function currentlyDark() {
+        const set = root.getAttribute("data-theme");
+        if (set) return set === "dark";
+        return matchMedia("(prefers-color-scheme: dark)").matches;
+      }
 
-      // Navigation Logic
-      function showSection(sectionId) {
-        // Update Sidebar Active State
-        document
-          .querySelectorAll(".list-group-item")
-          .forEach((el) => el.classList.remove("active"));
-        const activeLink = document.querySelector(
-          `[onclick="showSection('${sectionId}')"]`,
+      function paintThemeButton() {
+        const dark = currentlyDark();
+        themeBtn.textContent = dark ? "Light" : "Dark";
+        themeBtn.setAttribute(
+          "aria-label",
+          dark ? "Switch to light theme" : "Switch to dark theme",
         );
-        if (activeLink) activeLink.classList.add("active");
-
-        // Hide all sections
-        document.getElementById("overview-section").classList.add("hidden");
-        document.getElementById("list-section").classList.add("hidden");
-
-        if (sectionId === "overview") {
-          document
-            .getElementById("overview-section")
-            .classList.remove("hidden");
-        } else {
-          document.getElementById("list-section").classList.remove("hidden");
-          renderListSection(sectionId);
-        }
-
-        // On mobile, close sidebar after selection
-        if (window.innerWidth < 768) {
-          document.getElementById("wrapper").classList.remove("toggled");
-        }
       }
 
-      function renderListSection(sectionId) {
-        let Title = "";
-        let ListData = [];
+      try {
+        const saved = localStorage.getItem("nf-theme");
+        if (saved === "dark" || saved === "light")
+          root.setAttribute("data-theme", saved);
+      } catch (e) {}
 
-        switch (sectionId) {
-          case "not-following-back":
-            Title = "Not Following You Back";
-            ListData = data.notFollowingBack;
-            break;
-          case "dont-follow-back":
-            Title = "You Don't Follow Back";
-            ListData = data.dontFollowBack;
-            break;
-          case "pending-requests":
-            Title = "Pending Follow Requests";
-            ListData = data.pendingRequests;
-            break;
-          case "recent-requests":
-            Title = "Recent Follow Requests";
-            ListData = data.recentRequests;
-            break;
-          case "recently-unfollowed":
-            Title = "Recently Unfollowed Profiles";
-            ListData = data.recentlyUnfollowed;
-            break;
-          case "restricted":
-            Title = "Restricted Profiles";
-            ListData = data.restrictedProfiles;
-            break;
-        }
+      themeBtn.addEventListener("click", () => {
+        const next = currentlyDark() ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try {
+          localStorage.setItem("nf-theme", next);
+        } catch (e) {}
+        paintThemeButton();
+      });
+      paintThemeButton();
 
-        document.getElementById("list-title").textContent =
-          `${Title} (${ListData.length})`;
-        const container = document.getElementById("list-container");
-        document.getElementById("search-input").value = "";
+      $("restart").addEventListener("click", () => location.reload());
 
-        if (ListData.length === 0) {
-          container.innerHTML = `
-                  <div class="text-center p-5 text-muted">
-                      <i class="bi bi-check-circle display-4 mb-3 d-block text-success opacity-50"></i>
-                      <h5>No users found in this list.</h5>
-                  </div>
-              `;
-          return;
-        }
+      // ── intake ──
+      const MONTHS = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
 
-        container.innerHTML = ListData.map(
-          (u) => `
-              <div class="user-item" data-username="${u}">
-                  <div class="user-avatar">
-                      <i class="bi bi-person"></i>
-                  </div>
-                  <div class="flex-grow-1">
-                      <div class="fw-bold">@${u}</div>
-                      <div class="small text-muted">Instagram User</div>
-                  </div>
-                  <a href="https://www.instagram.com/${encodeURIComponent(u)}/" target="_blank" class="btn btn-sm btn-outline-primary">
-                      <i class="bi bi-instagram"></i> View
-                  </a>
-              </div>
-          `,
-        ).join("");
+      function dateFromName(filename) {
+        const m = /(\d{4})-(\d{2})-(\d{2})/.exec(filename || "");
+        if (!m) return null;
+        const d = new Date(+m[1], +m[2] - 1, +m[3]);
+        return isNaN(d) ? null : d;
       }
 
-      function updateDashboardCounts() {
-        // Badges
-        document.getElementById("badge-not-back").textContent =
-          data.notFollowingBack.length;
-        document.getElementById("badge-dont-back").textContent =
-          data.dontFollowBack.length;
-        document.getElementById("badge-pending").textContent =
-          data.pendingRequests.length;
-        document.getElementById("badge-recent").textContent =
-          data.recentRequests.length;
-        document.getElementById("badge-unfollowed").textContent =
-          data.recentlyUnfollowed.length;
-        document.getElementById("badge-restricted").textContent =
-          data.restrictedProfiles.length;
+      const fmtDate = (d) =>
+        `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 
-        // Stat Cards
-        document.getElementById("stat-followers").textContent =
-          data.followers.size;
-        document.getElementById("stat-following").textContent =
-          data.following.size;
-        document.getElementById("stat-not-back").textContent =
-          data.notFollowingBack.length;
-        document.getElementById("stat-pending").textContent =
-          data.pendingRequests.length;
+      function paintSlots() {
+        for (const which of ["older", "newer"]) {
+          const file = picked[which];
+          const slot = $("slot-" + which);
+          slot.classList.toggle("slot-empty", !file);
+          $("name-" + which).textContent = file
+            ? file.name
+            : which === "older"
+              ? "Optional"
+              : "Choose a zip";
+          const d = file ? dateFromName(file.name) : null;
+          $("date-" + which).textContent = file
+            ? d
+              ? fmtDate(d)
+              : "No date in filename"
+            : "";
+        }
 
-        // Previews
-        const previewUnfollowed = data.recentlyUnfollowed.slice(0, 5);
-        document.getElementById("preview-unfollowed").innerHTML =
-          previewUnfollowed.length
-            ? previewUnfollowed
-                .map(
-                  (u) => `
-                <div class="px-3 py-2 border-bottom d-flex align-items-center">
-                    <div class="small fw-bold flex-grow-1">@${u}</div>
-                    <span class="badge bg-light text-dark border">Unfollowed</span>
-                </div>
-            `,
-                )
-                .join("")
-            : '<div class="p-3 text-muted small">No recently unfollowed profiles</div>';
+        const a = picked.older && dateFromName(picked.older.name);
+        const b = picked.newer && dateFromName(picked.newer.name);
+        const reversed = a && b && a > b;
+        $("order-note").textContent = reversed
+          ? "These look the wrong way round."
+          : "";
+        $("swap").hidden = !(picked.older && picked.newer);
 
-        const previewRequests = data.recentRequests.slice(0, 5);
-        document.getElementById("preview-requests").innerHTML =
-          previewRequests.length
-            ? previewRequests
-                .map(
-                  (u) => `
-                <div class="px-3 py-2 border-bottom d-flex align-items-center">
-                    <div class="small fw-bold flex-grow-1">@${u}</div>
-                    <span class="badge bg-light text-dark border">Requested</span>
-                </div>
-            `,
-                )
-                .join("")
-            : '<div class="p-3 text-muted small">No recent requests</div>';
+        const go = $("go");
+        go.disabled = !picked.newer;
+        go.textContent = picked.newer
+          ? "Read the export"
+          : picked.older
+            ? "Add the newer export"
+            : "Read the export";
       }
 
-      // Logic
-      analyzeBtn.addEventListener("click", async () => {
-        const file = zipInput.files[0];
-        if (!file) return;
+      for (const which of ["older", "newer"]) {
+        $("file-" + which).addEventListener("change", (e) => {
+          picked[which] = e.target.files[0] || null;
+          paintSlots();
+        });
+      }
 
-        const btn = analyzeBtn;
-        const spinner = btn.querySelector(".spinner-border");
-        btn.disabled = true;
-        spinner.classList.remove("d-none");
-        document.getElementById("errorMsg").classList.add("hidden");
+      $("swap").addEventListener("click", () => {
+        [picked.older, picked.newer] = [picked.newer, picked.older];
+        paintSlots();
+      });
+
+      // ── reading an export ──
+      const IN = "connections/followers_and_following/";
+
+      function extractUsernameFromLink(a) {
+        try {
+          const url = new URL(a.href);
+          const parts = url.pathname.split("/").filter(Boolean);
+          if (parts.length > 0) {
+            if (parts[0] === "_u" && parts[1]) return parts[1];
+            if (parts[0] !== "_u") return parts[0];
+          }
+        } catch (e) {}
+        const text = a.textContent.trim();
+        if (/^[a-zA-Z0-9._]+$/.test(text)) return text;
+        return null;
+      }
+
+      function parseUsers(html) {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const users = new Set();
+        doc.querySelectorAll("a").forEach((a) => {
+          const u = extractUsernameFromLink(a);
+          if (u) users.add(u.toLowerCase());
+        });
+        return users;
+      }
+
+      async function parseExport(file) {
+        let zip;
+        try {
+          zip = await JSZip.loadAsync(await file.arrayBuffer());
+        } catch (e) {
+          // JSZip's own message talks about central directories. Say it plainly.
+          throw new Error(
+            `${file.name} isn't a readable zip. Upload the .zip Instagram sent you, not a photo or an unpacked folder.`,
+          );
+        }
+
+        const found = {
+          followers: [],
+          following: [],
+          pending: null,
+          recent: null,
+          unfollowed: null,
+          restricted: null,
+        };
+
+        zip.forEach((path, entry) => {
+          if (new RegExp(IN + "followers_\\d+\\.html$", "i").test(path)) {
+            found.followers.push(entry);
+          } else if (new RegExp(IN + "following\\.html$", "i").test(path)) {
+            found.following.push(entry);
+          } else if (
+            new RegExp(IN + "pending_follow_requests\\.html$", "i").test(path)
+          ) {
+            found.pending = entry;
+          } else if (
+            new RegExp(IN + "recent_follow_requests\\.html$", "i").test(path)
+          ) {
+            found.recent = entry;
+          } else if (
+            new RegExp(IN + "recently_unfollowed_profiles\\.html$", "i").test(
+              path,
+            )
+          ) {
+            found.unfollowed = entry;
+          } else if (
+            new RegExp(IN + "restricted_profiles\\.html$", "i").test(path)
+          ) {
+            found.restricted = entry;
+          }
+        });
+
+        if (!found.followers.length || !found.following.length) {
+          throw new Error(
+            `${file.name} has no followers/following files. Export your data from Instagram as HTML, then upload the zip without unpacking it.`,
+          );
+        }
+
+        const collect = async (entries) => {
+          const all = new Set();
+          for (const entry of entries) {
+            parseUsers(await entry.async("string")).forEach((u) => all.add(u));
+          }
+          return all;
+        };
+
+        const one = async (entry) =>
+          entry ? Array.from(parseUsers(await entry.async("string"))) : [];
+
+        return {
+          followers: await collect(found.followers),
+          following: await collect(found.following),
+          pendingRequests: await one(found.pending),
+          recentRequests: await one(found.recent),
+          recentlyUnfollowed: await one(found.unfollowed),
+          restrictedProfiles: await one(found.restricted),
+        };
+      }
+
+      const missingFrom = (a, b) => [...a].filter((u) => !b.has(u));
+
+      $("go").addEventListener("click", async () => {
+        if (!picked.newer) return;
+
+        const go = $("go");
+        go.disabled = true;
+        go.textContent = "Reading…";
+        $("fault").hidden = true;
 
         try {
-          const arrayBuffer = await file.arrayBuffer();
-          const zip = await JSZip.loadAsync(arrayBuffer);
+          const now = await parseExport(picked.newer);
+          Object.assign(data, now);
 
-          const files = {
-            followers: [],
-            following: [],
-            pending: null,
-            recent: null,
-            unfollowed: null,
-            restricted: null,
-          };
+          data.notFollowingBack = missingFrom(now.following, now.followers);
+          data.dontFollowBack = missingFrom(now.followers, now.following);
 
-          // Find files
-          zip.forEach((path, entry) => {
-            if (
-              /connections\/followers_and_following\/followers_\d+\.html$/i.test(
-                path,
-              )
-            ) {
-              files.followers.push(entry);
-            } else if (
-              /connections\/followers_and_following\/following\.html$/i.test(
-                path,
-              )
-            ) {
-              files.following.push(entry);
-            } else if (
-              /connections\/followers_and_following\/pending_follow_requests\.html$/i.test(
-                path,
-              )
-            ) {
-              files.pending = entry;
-            } else if (
-              /connections\/followers_and_following\/recent_follow_requests\.html$/i.test(
-                path,
-              )
-            ) {
-              files.recent = entry;
-            } else if (
-              /connections\/followers_and_following\/recently_unfollowed_profiles\.html$/i.test(
-                path,
-              )
-            ) {
-              files.unfollowed = entry;
-            } else if (
-              /connections\/followers_and_following\/restricted_profiles\.html$/i.test(
-                path,
-              )
-            ) {
-              files.restricted = entry;
-            }
-          });
-
-          if (!files.followers.length || !files.following.length) {
-            throw new Error("Required follower/following files not found.");
+          compared = false;
+          if (picked.older) {
+            const then = await parseExport(picked.older);
+            data.newFollowers = missingFrom(now.followers, then.followers);
+            data.lostFollowers = missingFrom(then.followers, now.followers);
+            data.startedFollowing = missingFrom(now.following, then.following);
+            data.stoppedFollowing = missingFrom(then.following, now.following);
+            compared = true;
           }
 
-          // Helpers
-          const extractUsernameFromLink = (a) => {
-            try {
-              const url = new URL(a.href);
-              const parts = url.pathname.split("/").filter(Boolean);
-              if (parts.length > 0) {
-                if (parts[0] === "_u" && parts[1]) return parts[1];
-                if (parts[0] !== "_u") return parts[0];
-              }
-            } catch (e) {}
-            const text = a.textContent.trim();
-            if (/^[a-zA-Z0-9._]+$/.test(text)) return text;
-            return null;
-          };
-
-          const parseUsers = (html) => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-            const links = doc.querySelectorAll("a");
-            const users = new Set();
-            links.forEach((a) => {
-              const u = extractUsernameFromLink(a);
-              if (u) users.add(u.toLowerCase());
-            });
-            return users;
-          };
-
-          // Process
-          data.followers = new Set();
-          for (const entry of files.followers) {
-            const html = await entry.async("string");
-            parseUsers(html).forEach((u) => data.followers.add(u));
-          }
-
-          data.following = new Set();
-          for (const entry of files.following) {
-            const html = await entry.async("string");
-            parseUsers(html).forEach((u) => data.following.add(u));
-          }
-
-          if (files.pending) {
-            const html = await files.pending.async("string");
-            data.pendingRequests = Array.from(parseUsers(html));
-          }
-          if (files.recent) {
-            const html = await files.recent.async("string");
-            data.recentRequests = Array.from(parseUsers(html));
-          }
-          if (files.unfollowed) {
-            const html = await files.unfollowed.async("string");
-            data.recentlyUnfollowed = Array.from(parseUsers(html));
-          }
-          if (files.restricted) {
-            const html = await files.restricted.async("string");
-            data.restrictedProfiles = Array.from(parseUsers(html));
-          }
-
-          // Compute Diff
-          data.notFollowingBack = [...data.following].filter(
-            (u) => !data.followers.has(u),
-          );
-          data.dontFollowBack = [...data.followers].filter(
-            (u) => !data.following.has(u),
-          );
-
-          // Render
-          updateDashboardCounts();
-
-          // Switch View
-          uploadView.classList.add("hidden");
-          dashboardView.classList.remove("hidden");
-          showSection("overview");
+          buildRail();
+          paintOverview();
+          $("intake").hidden = true;
+          $("app").hidden = false;
+          show("overview");
         } catch (err) {
           console.error(err);
-          document.getElementById("errorMsg").textContent =
+          $("fault").textContent =
             err.message ||
-            "Error processing file. Please ensure it is a valid Instagram data export.";
-          document.getElementById("errorMsg").classList.remove("hidden");
+            "That file couldn't be read. Check it is the zip Instagram gave you.";
+          $("fault").hidden = false;
         } finally {
-          btn.disabled = false;
-          spinner.classList.add("d-none");
+          paintSlots();
         }
       });
+
+      // ── rail ──
+      function buildRail() {
+        const groups = [[], [], []];
+        for (const [id, s] of Object.entries(SECTIONS)) {
+          if (s.compare && !compared) continue;
+          groups[s.group].push({ id, s });
+        }
+
+        const entry = (id, name, count, tone) =>
+          `<button type="button" class="idx" data-section="${id}">
+             <span class="idx-name">${name}</span>
+             <span class="idx-n ${tone || ""}" data-count="${id}">${count}</span>
+           </button>`;
+
+        let html = `<div class="idx-group">${entry("overview", "Reconciliation", "")}</div>`;
+        for (const g of groups) {
+          if (!g.length) continue;
+          html += `<div class="idx-group">${g
+            .map(({ id, s }) =>
+              entry(id, s.name, (s.sign || "") + num(data[s.key].length), s.tone),
+            )
+            .join("")}</div>`;
+        }
+        $("rail-index").innerHTML = html;
+
+        $("rail-index")
+          .querySelectorAll(".idx")
+          .forEach((b) =>
+            b.addEventListener("click", () => show(b.dataset.section)),
+          );
+      }
+
+      // ── reconciliation sheet ──
+      function paintOverview() {
+        const d = picked.newer && dateFromName(picked.newer.name);
+        $("dated").textContent = d ? `Exported ${fmtDate(d)}` : "";
+
+        $("n-following").textContent = num(data.following.size);
+        $("n-followers").textContent = num(data.followers.size);
+
+        const gap = data.notFollowingBack.length;
+        countUp($("n-gap"), gap);
+
+        $("prompt").hidden = compared;
+        $("since").hidden = !compared;
+        if (!compared) return;
+
+        const then = dateFromName(picked.older.name);
+        $("since-title").textContent = then
+          ? `Since ${fmtDate(then)}`
+          : "Since the older export";
+        $("since-span").textContent = `Net ${
+          data.newFollowers.length - data.lostFollowers.length >= 0 ? "+" : "−"
+        }${num(
+          Math.abs(data.newFollowers.length - data.lostFollowers.length),
+        )} followers`;
+
+        const lines = [
+          ["New followers", data.newFollowers.length, "surplus", "+"],
+          ["Unfollowed you", data.lostFollowers.length, "deficit", "−"],
+          ["You started following", data.startedFollowing.length, "surplus", "+"],
+          ["You stopped following", data.stoppedFollowing.length, "deficit", "−"],
+        ];
+
+        $("since-tally").innerHTML = lines
+          .map(
+            ([label, n, tone, sign]) =>
+              `<div class="row"><dt>${label}</dt><dd class="num ${
+                n ? tone : ""
+              }">${n ? sign : ""}${num(n)}</dd></div>`,
+          )
+          .join("");
+      }
+
+      function countUp(el, target) {
+        const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (still || target === 0) {
+          el.textContent = num(target);
+          return;
+        }
+        el.classList.add("counting");
+        const started = performance.now();
+        const step = (now) => {
+          const t = Math.min((now - started) / 700, 1);
+          const eased = 1 - Math.pow(1 - t, 3);
+          el.textContent = num(Math.round(target * eased));
+          if (t < 1) requestAnimationFrame(step);
+          else el.classList.remove("counting");
+        };
+        requestAnimationFrame(step);
+      }
+
+      // ── navigation + lists ──
+      function show(sectionId) {
+        document.querySelectorAll(".idx").forEach((b) => {
+          b.setAttribute(
+            "aria-current",
+            b.dataset.section === sectionId ? "true" : "false",
+          );
+        });
+
+        const isOverview = sectionId === "overview";
+        $("view-overview").hidden = !isOverview;
+        $("view-list").hidden = isOverview;
+        if (!isOverview) renderList(sectionId);
+        window.scrollTo(0, 0);
+      }
+
+      function renderList(sectionId) {
+        const s = SECTIONS[sectionId];
+        if (!s) return;
+        const users = data[s.key];
+
+        $("list-title").textContent = s.title;
+        $("list-meta").textContent = `${num(users.length)} ${
+          users.length === 1 ? "account" : "accounts"
+        }`;
+        $("filter").value = "";
+        $("filter").hidden = users.length < 2;
+
+        $("rows").innerHTML = users.length
+          ? users
+              .map(
+                (u) =>
+                  `<li class="row" data-u="${u}">
+                     <span class="row-name handle">@${u}</span>
+                     <a class="open" href="https://www.instagram.com/${encodeURIComponent(
+                       u,
+                     )}/" target="_blank" rel="noopener noreferrer">Open</a>
+                   </li>`,
+              )
+              .join("")
+          : `<li class="nothing">${s.empty}</li>`;
+
+        restripe();
+      }
+
+      // Zebra has to follow what's on screen, not source order, or filtering
+      // leaves two tinted rows touching.
+      function restripe() {
+        let visible = 0;
+        $("rows")
+          .querySelectorAll(".row")
+          .forEach((row) => {
+            row.classList.toggle("alt", !row.hidden && visible++ % 2 === 0);
+          });
+      }
+
+      $("filter").addEventListener("input", (e) => {
+        const term = e.target.value.trim().toLowerCase();
+        let shown = 0;
+        $("rows")
+          .querySelectorAll(".row")
+          .forEach((row) => {
+            const hit = row.dataset.u.includes(term);
+            row.hidden = !hit;
+            if (hit) shown++;
+          });
+        restripe();
+        const total = $("rows").querySelectorAll(".row").length;
+        $("list-meta").textContent = term
+          ? `${num(shown)} of ${num(total)}`
+          : `${num(total)} ${total === 1 ? "account" : "accounts"}`;
+      });
+
+      paintSlots();
     </script>
   </body>
 </html>
